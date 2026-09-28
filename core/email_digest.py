@@ -134,7 +134,7 @@ class EmailDigestNotifier:
 
                 with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
                     server.starttls()
-                    server.login(SMTP_USER, SMTP_PASSWORD)
+                    server.login(SMTP_USER, SMTP_PASSWORD.replace(" ", ""))
                     server.sendmail(self.sender, self.recipient, msg.as_string())
 
                 print(f"[Email Digest] Successfully sent email to {self.recipient}.")
