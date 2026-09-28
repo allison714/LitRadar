@@ -1,0 +1,58 @@
+# ==============================================================================
+#                             LitRadar .gitignore
+# ==============================================================================
+
+# Private Member Credentials (NEVER commit your personal API keys or emails)
+lab_config.env
+.env
+*.env.local
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Local data, outputs & downloads
+output/*.xlsx
+output/*.html
+output/*.ris
+output/*.json
+downloaded_pdfs/
+podcast_briefings/Week_*
+!podcast_briefings/.gitkeep
+
+# Databases & local stores
+*.sqlite
+*.db
+
+# Operating System specific
+.DS_Store
+Thumbs.db
+desktop.ini
+*.lnk
+
+# IDE & Editor caches
+.idea/
+.vscode/
+*.swp
+*.swo
