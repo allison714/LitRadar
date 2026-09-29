@@ -1,5 +1,5 @@
 @echo off
-title [03] LitRadar - Weekly Literature Surveillance & Digest
+title [03] LitRadar - Weekly Literature Surveillance and Digest
 cd /d "%~dp0"
 
 if not exist "lab_config.env" (

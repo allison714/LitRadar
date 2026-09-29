@@ -1,5 +1,5 @@
 @echo off
-title [04] LitRadar - Harvest Top Foundational Benchmarks & Intro Briefings
+title [04] LitRadar - Harvest Top Foundational Benchmarks and Intro Briefings
 cd /d "%~dp0"
 
 if not exist "lab_config.env" (

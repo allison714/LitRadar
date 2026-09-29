@@ -106,34 +106,72 @@ class ExcelKnowledgeBase:
 
         # 2. Master_Archive (Year & Citation Sorted)
         archive_headers = [
-            "DOI / ID", "Year", "Citations", "Title", "Journal", "Track",
+            "Date Added", "DOI / ID", "Year", "Citations", "Title", "Journal", "Track",
             "Key Targets", "Methods", "TL;DR Summary", "Zotero Tags"
         ]
 
         existing_entries = {}
         if "Master_Archive" in wb.sheetnames:
             ws_archive = wb["Master_Archive"]
+            header_row = [str(c).strip().lower() for c in (next(ws_archive.iter_rows(min_row=1, max_row=1, values_only=True), None) or [])]
+            has_date_col = len(header_row) > 0 and "date" in header_row[0]
+
             for row in ws_archive.iter_rows(min_row=2, values_only=True):
-                if row and row[0]:
-                    existing_entries[str(row[0]).lower().strip()] = {
-                        "doi": row[0],
-                        "year": row[1],
-                        "citations": row[2],
-                        "title": row[3],
-                        "journal": row[4],
-                        "track_name": row[5],
-                        "targets": row[6].split(", ") if row[6] else [],
-                        "methods": row[7].split(", ") if row[7] else [],
-                        "tldr": row[8],
-                        "tags": row[9].split(", ") if row[9] else [],
-                        "url": f"https://doi.org/{row[0]}" if "10." in str(row[0]) else "",
+                if not row or not any(row):
+                    continue
+                if has_date_col:
+                    date_val = str(row[0] or "") if len(row) > 0 else today_str
+                    doi_val = row[1] if len(row) > 1 else ""
+                    year_val = row[2] if len(row) > 2 else ""
+                    cites_val = row[3] if len(row) > 3 else 0
+                    title_val = row[4] if len(row) > 4 else ""
+                    journal_val = row[5] if len(row) > 5 else ""
+                    track_val = row[6] if len(row) > 6 else ""
+                    targets_val = row[7].split(", ") if len(row) > 7 and row[7] else []
+                    methods_val = row[8].split(", ") if len(row) > 8 and row[8] else []
+                    tldr_val = row[9] if len(row) > 9 else ""
+                    tags_val = row[10].split(", ") if len(row) > 10 and row[10] else []
+                else:
+                    date_val = "Historical Archive"
+                    doi_val = row[0] if len(row) > 0 else ""
+                    year_val = row[1] if len(row) > 1 else ""
+                    cites_val = row[2] if len(row) > 2 else 0
+                    title_val = row[3] if len(row) > 3 else ""
+                    journal_val = row[4] if len(row) > 4 else ""
+                    track_val = row[5] if len(row) > 5 else ""
+                    targets_val = row[6].split(", ") if len(row) > 6 and row[6] else []
+                    methods_val = row[7].split(", ") if len(row) > 7 and row[7] else []
+                    tldr_val = row[8] if len(row) > 8 else ""
+                    tags_val = row[9].split(", ") if len(row) > 9 and row[9] else []
+
+                if doi_val or title_val:
+                    key = str(doi_val or title_val).lower().strip()
+                    existing_entries[key] = {
+                        "date_added": date_val,
+                        "doi": doi_val,
+                        "year": year_val,
+                        "citations": cites_val,
+                        "title": title_val,
+                        "journal": journal_val,
+                        "track_name": track_val,
+                        "targets": targets_val,
+                        "methods": methods_val,
+                        "tldr": tldr_val,
+                        "tags": tags_val,
+                        "url": f"https://doi.org/{doi_val}" if "10." in str(doi_val) else "",
                     }
             wb.remove(ws_archive)
 
         for p in new_papers:
             ident = p.get("doi") or p.get("pmid") or p.get("title")
             if ident:
-                existing_entries[str(ident).lower().strip()] = p
+                key = str(ident).lower().strip()
+                if key in existing_entries:
+                    # Keep original date_added if already present
+                    p["date_added"] = existing_entries[key].get("date_added", today_str)
+                else:
+                    p["date_added"] = p.get("date_added", today_str)
+                existing_entries[key] = p
 
         ws_archive = wb.create_sheet(title="Master_Archive")
         ws_archive.append(archive_headers)
@@ -149,6 +187,7 @@ class ExcelKnowledgeBase:
         for idx, paper in enumerate(sorted_archive, start=2):
             doi_val = paper.get("doi") or paper.get("pmid") or ""
             row_data = [
+                paper.get("date_added", today_str),
                 doi_val,
                 paper.get("year", ""),
                 paper.get("citations", 0),
@@ -170,7 +209,7 @@ class ExcelKnowledgeBase:
                 cell.alignment = Alignment(vertical="top", wrap_text=True)
                 if is_even:
                     cell.fill = self.zebra_fill
-                if col_idx == 4 and paper.get("url"):
+                if col_idx == 5 and paper.get("url"):
                     cell.hyperlink = paper["url"]
                     cell.font = self.link_font
 

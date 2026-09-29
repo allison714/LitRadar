@@ -59,6 +59,8 @@ class EmailDigestNotifier:
         if not table_rows_html:
             table_rows_html = "<tr><td colspan='3' style='padding: 16px; text-align: center; color: #64748b;'>No newly indexed papers this week. Historical knowledge base remains up to date.</td></tr>"
 
+        excel_uri = str(EXCEL_PATH).replace("\\", "/")
+
         html = f"""
         <!DOCTYPE html>
         <html>
@@ -84,7 +86,7 @@ class EmailDigestNotifier:
                 <div class="content">
                     <div style="background-color: #e0f2fe; border: 1px solid #bae6fd; padding: 14px 18px; border-radius: 6px; margin-bottom: 24px;">
                         <span style="font-weight: bold; color: #0369a1;">Master Excel Updated:</span> 
-                        <a href="file:///{str(EXCEL_PATH).replace('\\\\', '/')}" style="color: #0284c7; font-weight: bold;">{EXCEL_PATH.name}</a><br/>
+                        <a href="file:///{excel_uri}" style="color: #0284c7; font-weight: bold;">{EXCEL_PATH.name}</a><br/>
                         <span style="font-size: 12px; color: #0284c7;">Includes <code>Weekly_Arrivals</code>, <code>Master_Archive</code> (by Year/Citations), and <code>PanExM_Antibodies</code>.</span>
                     </div>
 

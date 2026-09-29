@@ -1,5 +1,5 @@
 @echo off
-title [02] LitRadar - Interactive Zotero Library Retagger & Topic Filter
+title [02] LitRadar - Interactive Zotero Library Retagger and Topic Filter
 cd /d "%~dp0"
 
 if not exist "lab_config.env" (
