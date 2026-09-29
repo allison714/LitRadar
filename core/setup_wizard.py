@@ -182,7 +182,10 @@ def run_wizard():
     sender_gmail = ""
     app_password = ""
     if enable_smtp:
-        sender_gmail = prompt("Sender Gmail Address", existing.get("SENDER_GMAIL", ""))
+        sender_gmail = prompt("Sender Gmail (use a non-.edu personal Gmail)", existing.get("SENDER_GMAIL", ""))
+        print("      NOTE: Institutional .edu accounts cannot generate App Passwords.")
+        print("            Use a personal @gmail.com address instead.")
+        print()
         print("      How to get a free Gmail App Password (~60 seconds):")
         print("        1. Go to https://myaccount.google.com/security")
         print("        2. Ensure 2-Step Verification is ON")
