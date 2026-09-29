@@ -190,7 +190,10 @@ class ZoteroSync:
         """
         Push items via Zotero Web API directly into matching collections,
         and attach downloaded local PDFs to the newly created Zotero items.
+        Uses batched uploads (up to 50 per request) with rate-limit backoff.
         """
+        import time
+
         if not self.zot:
             print("[Zotero Cloud Error] Zotero API not authenticated. Check ZOTERO_API_KEY in config.py.")
             return 0
@@ -198,102 +201,172 @@ class ZoteroSync:
             return 0
 
         print(f"\n[Zotero Cloud Push] Uploading {len(papers)} papers into Zotero Cloud...")
+
+        # Verify API key has write access with a quick test call
+        try:
+            self.zot.key_info()
+        except Exception as e:
+            err_msg = str(e)
+            if "403" in err_msg or "Invalid key" in err_msg.lower() or "Forbidden" in err_msg:
+                print("[Zotero Cloud Error] Your API key was REJECTED (403 Forbidden).")
+                print("    This usually means the key lacks WRITE permission.")
+                print("    Fix: Go to https://www.zotero.org/settings/keys")
+                print("      -> Edit your key -> check 'Allow library access'")
+                print("      -> check 'Allow write access' -> Save.")
+                print("    Then update ZOTERO_API_KEY in your lab_config.env.")
+                self._export_ris_file(papers)
+                return 0
+            # Non-auth error, continue and let the actual push handle it
+            print(f"[Zotero Cloud Warning] key_info check: {e}")
+
+        # Cache the item template once (avoids N extra API calls)
+        try:
+            base_template = self.zot.item_template("journalArticle")
+        except Exception as e:
+            print(f"[Zotero Cloud Error] Could not fetch item template: {e}")
+            self._export_ris_file(papers)
+            return 0
+
         success_count = 0
 
-        for idx, p in enumerate(papers, start=1):
-            try:
-                tpl = self.zot.item_template("journalArticle")
-                tpl["title"] = p.get("title", "")
-                tpl["publicationTitle"] = p.get("journal", "")
-                tpl["date"] = str(p.get("year", ""))
-                tpl["DOI"] = p.get("doi", "")
-                tpl["url"] = p.get("url", "")
-                tpl["abstractNote"] = p.get("abstract", "")
-                if p.get("pmid"):
-                    tpl["extra"] = f"PMID: {p['pmid']}"
+        # Build all items first
+        items_to_push = []
+        for p in papers:
+            tpl = dict(base_template)  # shallow copy of cached template
+            tpl["title"] = p.get("title", "")
+            tpl["publicationTitle"] = p.get("journal", "")
+            tpl["date"] = str(p.get("year", ""))
+            tpl["DOI"] = p.get("doi", "")
+            tpl["url"] = p.get("url", "")
+            tpl["abstractNote"] = p.get("abstract", "")
+            if p.get("pmid"):
+                tpl["extra"] = f"PMID: {p['pmid']}"
 
-                # Parse authors
-                raw_authors = p.get("authors", "")
-                if raw_authors:
-                    creators = []
-                    # Split on semicolons or commas if no semicolons
-                    delimiter = ";" if ";" in raw_authors else ","
-                    for auth in raw_authors.split(delimiter):
-                        auth = auth.strip()
-                        if not auth:
-                            continue
-                        name_parts = auth.split()
-                        if len(name_parts) >= 2:
-                            creators.append({
-                                "creatorType": "author",
-                                "lastName": name_parts[-1].strip(),
-                                "firstName": " ".join(name_parts[:-1]).strip()
-                            })
-                        else:
-                            creators.append({
-                                "creatorType": "author",
-                                "name": auth
-                            })
-                    if creators:
-                        tpl["creators"] = creators[:20]  # Cap at 20 authors to avoid API payload bloat
+            # Parse authors
+            raw_authors = p.get("authors", "")
+            if raw_authors:
+                creators = []
+                delimiter = ";" if ";" in raw_authors else ","
+                for auth in raw_authors.split(delimiter):
+                    auth = auth.strip()
+                    if not auth:
+                        continue
+                    name_parts = auth.split()
+                    if len(name_parts) >= 2:
+                        creators.append({
+                            "creatorType": "author",
+                            "lastName": name_parts[-1].strip(),
+                            "firstName": " ".join(name_parts[:-1]).strip()
+                        })
+                    else:
+                        creators.append({
+                            "creatorType": "author",
+                            "name": auth
+                        })
+                if creators:
+                    tpl["creators"] = creators[:20]
 
-                # Tags
-                tags_to_apply = p.get("tags", [])
-                tpl["tags"] = [{"tag": t} for t in tags_to_apply]
+            # Tags
+            tags_to_apply = p.get("tags", [])
+            tpl["tags"] = [{"tag": t} for t in tags_to_apply]
 
-                # Target Collection
-                collections = []
-                if target_collection_key:
-                    collections.append(target_collection_key)
-                else:
-                    tags_str = " ".join(tags_to_apply).lower()
-                    title_str = p.get("title", "").lower()
-                    track_name = p.get("track_name", "").lower()
+            # Target Collection
+            collections = []
+            if target_collection_key:
+                collections.append(target_collection_key)
+            else:
+                tags_str = " ".join(tags_to_apply).lower()
+                title_str = p.get("title", "").lower()
+                track_name = p.get("track_name", "").lower()
 
-                    if "shank2-exon24" in tags_str or "exon 24" in title_str:
-                        collections.append(COLLECTION_MAPPING.get("shank2_isoforms", "UAJ8BK85"))
-                    elif "shank2" in tags_str or "shank2" in title_str or "shank2" in track_name:
-                        collections.append(COLLECTION_MAPPING.get("shank2", "UAJ8BK85"))
-                    elif "acc" in tags_str or "anterior cingulate" in title_str or "acc" in track_name:
-                        collections.append(COLLECTION_MAPPING.get("acc_circuitry", "8M4HXIPP"))
-                    elif "pan-exm" in tags_str or "pan-exm" in title_str or "pan-exm" in track_name:
-                        collections.append(COLLECTION_MAPPING.get("pan_exm", "MZ37DCHK"))
-                    elif "homer1" in tags_str or "glun1" in tags_str or "glua1" in tags_str or "postsynaptic-density" in tags_str or "psd" in track_name:
-                        collections.append(COLLECTION_MAPPING.get("psd_nanoscale", "9HE6B2MS"))
-                    elif "connectomics" in tags_str or "connectomics" in title_str or "connectomics" in track_name:
-                        collections.append(COLLECTION_MAPPING.get("connectomics", "9BIMSI9V"))
+                if "shank2-exon24" in tags_str or "exon 24" in title_str:
+                    collections.append(COLLECTION_MAPPING.get("shank2_isoforms", "UAJ8BK85"))
+                elif "shank2" in tags_str or "shank2" in title_str or "shank2" in track_name:
+                    collections.append(COLLECTION_MAPPING.get("shank2", "UAJ8BK85"))
+                elif "acc" in tags_str or "anterior cingulate" in title_str or "acc" in track_name:
+                    collections.append(COLLECTION_MAPPING.get("acc_circuitry", "8M4HXIPP"))
+                elif "pan-exm" in tags_str or "pan-exm" in title_str or "pan-exm" in track_name:
+                    collections.append(COLLECTION_MAPPING.get("pan_exm", "MZ37DCHK"))
+                elif "homer1" in tags_str or "glun1" in tags_str or "glua1" in tags_str or "postsynaptic-density" in tags_str or "psd" in track_name:
+                    collections.append(COLLECTION_MAPPING.get("psd_nanoscale", "9HE6B2MS"))
+                elif "connectomics" in tags_str or "connectomics" in title_str or "connectomics" in track_name:
+                    collections.append(COLLECTION_MAPPING.get("connectomics", "9BIMSI9V"))
 
-                tpl["collections"] = collections
+            tpl["collections"] = collections
+            items_to_push.append((p, tpl))
 
-                # Create item on Zotero Cloud
-                resp = self.zot.create_items([tpl])
-                created_key = None
-                if isinstance(resp, dict) and resp.get("success"):
-                    created_key = list(resp["success"].values())[0]
-                elif isinstance(resp, list) and len(resp) > 0:
-                    created_key = resp[0].get("key")
+        # Push in batches of 50 (Zotero API maximum)
+        BATCH_SIZE = 50
+        MAX_RETRIES = 3
 
-                if created_key:
+        for batch_start in range(0, len(items_to_push), BATCH_SIZE):
+            batch = items_to_push[batch_start:batch_start + BATCH_SIZE]
+            batch_num = (batch_start // BATCH_SIZE) + 1
+            total_batches = (len(items_to_push) + BATCH_SIZE - 1) // BATCH_SIZE
+
+            if total_batches > 1:
+                print(f"    [Batch {batch_num}/{total_batches}] Pushing {len(batch)} items...")
+
+            templates = [tpl for _, tpl in batch]
+
+            # Retry loop with exponential backoff
+            for attempt in range(MAX_RETRIES):
+                try:
+                    resp = self.zot.create_items(templates)
+                    break
+                except Exception as e:
+                    err_str = str(e).lower()
+                    if "rate" in err_str or "429" in err_str or "backoff" in err_str:
+                        wait_secs = 2 ** (attempt + 1)  # 2, 4, 8 seconds
+                        print(f"    [Rate Limited] Waiting {wait_secs}s before retry ({attempt + 1}/{MAX_RETRIES})...")
+                        time.sleep(wait_secs)
+                        if attempt == MAX_RETRIES - 1:
+                            print(f"    [ERROR] Batch {batch_num} failed after {MAX_RETRIES} retries: {e}")
+                            resp = None
+                    elif "403" in str(e) or "invalid key" in err_str or "forbidden" in err_str:
+                        print(f"    [ERROR] API key rejected (403). Check write permissions at https://www.zotero.org/settings/keys")
+                        resp = None
+                        break
+                    else:
+                        print(f"    [ERROR] Batch {batch_num}: {e}")
+                        resp = None
+                        break
+            else:
+                resp = None
+
+            # Process response
+            if resp and isinstance(resp, dict):
+                succeeded = resp.get("success", {})
+                failed = resp.get("failed", {})
+
+                for pos_str, item_key in succeeded.items():
+                    pos = int(pos_str)
+                    paper, _ = batch[pos]
                     success_count += 1
-                    self.add_to_known(p)
-                    safe_title = p.get('title', '')[:55].encode('ascii', 'replace').decode('ascii')
-                    print(f"    [{idx}/{len(papers)}] Pushed to Zotero Cloud: {safe_title}... (Item: {created_key})")
+                    self.add_to_known(paper)
+                    safe_title = paper.get('title', '')[:55].encode('ascii', 'replace').decode('ascii')
+                    global_idx = batch_start + pos + 1
+                    print(f"    [{global_idx}/{len(papers)}] Pushed: {safe_title}...")
 
-                    # If local PDF exists, attach to Zotero item
-                    local_pdf = p.get("local_pdf_path")
+                    # Attach local PDF if exists
+                    local_pdf = paper.get("local_pdf_path")
                     if local_pdf and Path(local_pdf).exists():
                         try:
-                            print(f"        Attaching PDF {Path(local_pdf).name} to Zotero Cloud item...")
-                            self.zot.attachment_simple([str(local_pdf)], parentid=created_key)
-                            print(f"        [+] PDF attached successfully!")
+                            self.zot.attachment_simple([str(local_pdf)], parentid=item_key)
+                            print(f"        [+] PDF attached: {Path(local_pdf).name}")
                         except Exception as att_err:
-                            print(f"        [Notice] Cloud PDF attachment: {att_err}")
-                else:
-                    err_detail = resp.get("failed") if isinstance(resp, dict) else resp
-                    print(f"    [-] Failed to push item {idx}: {err_detail}")
+                            print(f"        [Notice] PDF attachment: {att_err}")
 
-            except Exception as e:
-                print(f"    [Zotero Push Error on item {idx}]: {e}")
+                for pos_str, err_info in failed.items():
+                    pos = int(pos_str)
+                    paper, _ = batch[pos]
+                    safe_title = paper.get('title', '')[:55].encode('ascii', 'replace').decode('ascii')
+                    global_idx = batch_start + pos + 1
+                    print(f"    [-] Failed item {global_idx}: {safe_title}... ({err_info})")
+
+            # Pause between batches to respect rate limits
+            if batch_start + BATCH_SIZE < len(items_to_push):
+                time.sleep(1)
 
         # Export local offline .ris backup
         try:

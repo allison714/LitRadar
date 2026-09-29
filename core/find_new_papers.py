@@ -779,7 +779,7 @@ def interactive_finder_menu():
         # Update Master Excel
         try:
             excel_kb = ExcelKnowledgeBase()
-            excel_kb.update_database(papers_to_import)
+            excel_kb.update_knowledge_base(papers_to_import)
             print(f"\n[Excel Update] Logged {len(papers_to_import)} papers into SHANK2_Synaptopathy_Master.xlsx")
         except Exception as e:
             print(f"\n[Excel Note]: {e}")
