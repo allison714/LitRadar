@@ -203,6 +203,48 @@ class NotebookLMBundleExporter:
         with open(overview_path, "w", encoding="utf-8") as f:
             f.write("\n".join(summary_lines))
 
+        # Also write a dedicated, click-to-copy prompts file inside the bundle
+        prompts_path = bundle_dir / "01_NotebookLM_CopyPaste_Prompts.md"
+        prompts_content = """# 📋 Ready-to-Copy Prompts for this NotebookLM Bundle
+
+## 🎙️ Option 1: Custom Audio Overview (Podcast) Prompt
+*Paste into: Audio Overview -> Customize (Pencil icon)*
+
+```text
+Act as two senior principal investigators and neurobiologists leading a high-level journal club. Focus the discussion on:
+1. The exact mechanistic claims made regarding synaptic scaffolding (SHANK2/Homer1/GluN1) and circuitry (ACC/Connectomics).
+2. Methodological rigor: Scrutinize imaging techniques (especially Pan-Expansion Microscopy / super-resolution), sample sizes, antibody validation, and controls.
+3. Healthy scientific disagreement: Have the two hosts debate whether the authors' conclusions are fully justified or if alternative interpretations exist.
+4. Conclude with 2 active-recall questions for the listener.
+```
+
+---
+
+## 💬 Option 2: Cross-Study Synthesis Table
+*Paste into: NotebookLM Chat window*
+
+```text
+Generate a comprehensive cross-study comparison table for all uploaded papers with these columns:
+- Study (First Author, Year)
+- Primary Biological Question
+- Key Experimental Model (e.g. KO mice, cell culture)
+- Core Finding / Molecular Mechanism
+- Methodological Innovations & Limitations
+Summarize where these studies agree and where they contradict each other.
+```
+
+---
+
+## 🔬 Option 3: Antibody & Protocol Extraction (For Pan-ExM)
+*Paste into: NotebookLM Chat window*
+
+```text
+Extract all antibodies, fluorophores, expansion microscopy gels/clearing chemistry, and imaging protocols described in these papers. Format as a clean table: Target Antigen | Host Species | Dilution / Protocol Note | Source Paper.
+```
+"""
+        with open(prompts_path, "w", encoding="utf-8") as f:
+            f.write(prompts_content)
+
         return bundle_dir
 
 
