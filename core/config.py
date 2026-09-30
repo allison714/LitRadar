@@ -62,14 +62,18 @@ TRACKS = {
     },
     "track_2_acc_circuitry": {
         "id": 2,
-        "name": "Pillar 2: ACC Synaptic Circuitry",
+        "name": "Pillar 2: ACC Synaptic Circuitry & Imaging",
         "folder": "ACC_Circuitry",
         "pubmed_query": (
-            '("SHANK2"[Title/Abstract] OR "Shank2"[Title/Abstract]) '
-            'AND ("anterior cingulate"[Title/Abstract] OR "ACC"[Title/Abstract] OR "cingulate cortex"[Title/Abstract] '
-            'OR "social behavior"[Title/Abstract] OR "prefrontal"[Title/Abstract])'
+            '("anterior cingulate"[Title/Abstract] OR "ACC"[Title/Abstract] OR "cingulate cortex"[Title/Abstract]) '
+            'AND ('
+            '("SHANK2"[Title/Abstract] OR "Shank2"[Title/Abstract] OR "ProSAP1"[Title/Abstract]) '
+            'OR ("expansion microscopy"[Title/Abstract] OR "Pan-ExM"[Title/Abstract] OR "ExM"[Title/Abstract] '
+            'OR "electron microscopy"[Title/Abstract] OR "EM"[Title/Abstract] OR "super-resolution"[Title/Abstract] '
+            'OR "ultrastructure"[Title/Abstract] OR "synaptic imaging"[Title/Abstract] OR "connectome"[Title/Abstract])'
+            ')'
         ),
-        "semantic_query": "SHANK2 anterior cingulate cortex synaptic transmission social behavior",
+        "semantic_query": "anterior cingulate cortex SHANK2 expansion microscopy electron microscopy synaptic ultrastructure imaging",
     },
     "track_3_psd_nanoscale": {
         "id": 3,

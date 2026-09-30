@@ -56,3 +56,27 @@ Critique these papers like a tough peer reviewer for Nature Neuroscience. Identi
 ```text
 Based on the combined findings of all attached papers, propose 3 novel, testable hypotheses for our next lab project, including proposed experimental assays and predicted outcomes.
 ```
+
+---
+
+## 📇 Category C: Topic-Specific Anki Flashcard Generation
+*Where to paste: In NotebookLM Chat (select specific source notes or papers, e.g. SHANK2 or Pan-ExM).*
+
+### 8. Anki Flashcard Generator (TSV / Import Format)
+```text
+Convert the key mechanistic, genetic, and methodological insights from these sources into 15 high-yield Anki flashcards for a neurobiology researcher.
+
+Format the output strictly as a clean code block ready to copy and save as a .tsv / .txt file for direct Anki import:
+Front Question [TAB] Back Answer
+
+Rules:
+1. Target specific details: Gene isoforms (e.g. SHANK2 Exon 24), synaptic scaffold interactions (Homer1, GluN1, GluA1), circuit locations (ACC layers), and Pan-ExM imaging parameters (expansion factors, NHS-ester labeling).
+2. Include the academic citation (FirstAuthor Lastname, Year) at the bottom of the Back Answer.
+3. Make answers concise, testable, and conceptually rigorous.
+```
+
+### 9. Cloze Deletion Anki Cards (Fill-in-the-Blank)
+```text
+Generate 10 advanced Cloze-deletion Anki flashcards (using standard {{c1::hidden_text}} formatting) testing core synaptopathy pathways, Pan-ExM staining order (pre- vs post-expansion), and ACC projection targets based on these sources.
+```
+
