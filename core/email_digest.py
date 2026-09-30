@@ -83,16 +83,22 @@ class EmailDigestNotifier:
                     <p style="margin: 0; opacity: 0.85; font-size: 14px;">Week {week_num} • {today_str} • {total_papers} New Publications Harvested</p>
                 </div>
 
-                <div class="content">
-                    <div style="background-color: #e0f2fe; border: 1px solid #bae6fd; padding: 14px 18px; border-radius: 6px; margin-bottom: 24px;">
-                        <span style="font-weight: bold; color: #0369a1;">Master Excel Updated:</span> 
-                        <a href="file:///{excel_uri}" style="color: #0284c7; font-weight: bold;">{EXCEL_PATH.name}</a><br/>
-                        <span style="font-size: 12px; color: #0284c7;">Includes <code>Weekly_Arrivals</code>, <code>Master_Archive</code> (by Year/Citations), and <code>PanExM_Antibodies</code>.</span>
+                    <div style="display: flex; gap: 12px; margin-bottom: 24px;">
+                        <div style="flex: 1; background-color: #e0f2fe; border: 1px solid #bae6fd; padding: 14px 18px; border-radius: 6px;">
+                            <span style="font-weight: bold; color: #0369a1;">📊 Weekly Slide Deck Ready:</span><br/>
+                            <a href="file:///{excel_uri.replace(EXCEL_PATH.name, 'Weekly_Slide_Deck.html')}" style="color: #0284c7; font-weight: bold; text-decoration: none; font-size: 14px;">🖥️ Open Interactive Slide Deck ↗</a><br/>
+                            <span style="font-size: 11px; color: #0369a1;">Formatted with academic citations & mechanistic models.</span>
+                        </div>
+                        <div style="flex: 1; background-color: #fef3c7; border: 1px solid #fde68a; padding: 14px 18px; border-radius: 6px;">
+                            <span style="font-weight: bold; color: #92400e;">🎧 Listen in NotebookLM:</span><br/>
+                            <a href="https://notebooklm.google.com" target="_blank" style="color: #b45309; font-weight: bold; text-decoration: none; font-size: 14px;">🎙️ Launch Google NotebookLM ↗</a><br/>
+                            <span style="font-size: 11px; color: #92400e;">Drop in briefing files from <code>podcast_briefings/</code>.</span>
+                        </div>
                     </div>
 
-                    <h2>1. The 5 Curated Weekly Podcasts (NotebookLM Audio Overviews)</h2>
+                    <h2>1. The 5 Curated Weekly Podcasts & Slide Decks</h2>
                     <p style="font-size: 13px; color: #64748b; margin-bottom: 16px;">
-                        The top paper from each research dimension has been converted into an intellectually rigorous 2-host briefing document located in <code>{PODCAST_DIR.name}</code>:
+                        The top paper from each research dimension has been converted into an intellectually rigorous briefing dossier and slide deck in <code>{PODCAST_DIR.name}</code>:
                     </p>
                     {podcast_cards_html}
 
